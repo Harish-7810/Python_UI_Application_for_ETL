@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload and Download</title>
+    <title>ETL</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         body {
@@ -110,7 +110,7 @@
         <h2>JSON files</h2>
         <ul class="file-list" id="file-list">
             {% for file in files %}
-                <li><a href="/download/{{ file }}">Download {{ file }}</a></li>
+                <li><a href="/download/{{ file }}">{{ file }}</a></li>
             {% else %}
                 <li style="color: #555;">No files available for download</li>
             {% endfor %}
