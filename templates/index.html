@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload and Download</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .upload-box {
+            border: 2px dashed #007BFF;
+            padding: 50px;
+            text-align: center;
+            margin: 20px auto;
+            border-radius: 8px;
+            background: #f9f9f9;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .upload-box.dragging {
+            background-color: #e6f7ff;
+            border-color: #0056b3;
+        }
+
+        .upload-box p {
+            font-size: 18px;
+            color: #555;
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .file-list li {
+            margin: 10px 0;
+        }
+
+        .file-list li a {
+            display: block;
+            text-decoration: none;
+            color: white;
+            background-color: #007BFF;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-list li a:hover {
+            background-color: #0056b3;
+        }
+
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #45a049;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV to JSON Converter</h1>
+        <p style="text-align: center; color: #555;">Easily upload files and download the converted files.</p>
+
+        <!-- Drag and drop box for file upload -->
+        <div class="upload-box" id="upload-box">
+            <p>Drag & Drop files here or click to upload your CSV files</p>
+        </div>
+        <input type="file" id="file-input" hidden>
+
+        <!-- List of processed files available for download -->
+        <h2>JSON files</h2>
+        <ul class="file-list" id="file-list">
+            {% for file in files %}
+                <li><a href="/download/{{ file }}">Download {{ file }}</a></li>
+            {% else %}
+                <li style="color: #555;">No files available for download</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 ETL File Manager. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const uploadBox = document.getElementById('upload-box');
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+
+        const socket = io();
+
+        // Fetch the list of files and update the download section
+        function updateFileList() {
+            fetch('/')
+                .then(response => response.text())
+                .then(data => {
+                    const startIndex = data.indexOf('<ul class="file-list" id="file-list">') + 41;
+                    const endIndex = data.indexOf('</ul>', startIndex);
+                    const fileListHTML = data.slice(startIndex, endIndex);
+                    fileList.innerHTML = fileListHTML;
+                });
+        }
+
+        socket.on('file_uploaded', (data) => {
+            // Update the UI when a new file is uploaded
+            updateFileList();
+        });
+
+        socket.on('file_deleted', (data) => {
+            // Remove the deleted file from the UI
+            const fileLinks = fileList.querySelectorAll('li a');
+            fileLinks.forEach(link => {
+                if (link.href.endsWith(data.filename)) {
+                    link.parentElement.remove();
+                }
+            });
+        });
+
+        uploadBox.addEventListener('click', () => fileInput.click());
+
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.classList.add('dragging');
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('dragging');
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove('dragging');
+            const files = e.dataTransfer.files;
+            uploadFiles(files);
+        });
+
+        fileInput.addEventListener('change', () => {
+            uploadFiles(fileInput.files);
+        });
+
+        function uploadFiles(files) {
+            const formData = new FormData();
+            formData.append('file', files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    updateFileList(); // Refresh the file list after upload
+                } else {
+                    alert("Error uploading file");
+                }
+            });
+        }
+
+        // Initial load of the file list when the page is loaded
+        updateFileList();
+    </script>
+</body>
+</html>
