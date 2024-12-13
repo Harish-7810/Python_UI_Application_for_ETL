@@ -22,7 +22,8 @@ app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
 @app.route('/')
 def index():
     # List files in the downloads directory for downloading
-    files = [file for file in os.listdir(DOWNLOAD_FOLDER) if file.endswith('.json')]
+    files = os.listdir(DOWNLOAD_FOLDER)
+    # files = [file for file in os.listdir(DOWNLOAD_FOLDER) if file.endswith('.json')]
     return render_template('index.html', files=files)
 
 @app.route('/upload', methods=['POST'])
@@ -38,16 +39,18 @@ def upload_file():
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
 
-    # Simulate processing (you can replace this with your actual processing logic)
-    processed_filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], filename)
-    with open(filepath, "r") as f:
-        file_data = f.read()
+    # Process only JSON files and write them to the download folder
+    if filename.endswith('.json'):
+        processed_filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], filename)
+        with open(filepath, "r") as f:
+            file_data = f.read()
 
-    # Here, we can simulate processing the data and saving it to the download folder
-    with open(processed_filepath, "w") as f:
-        f.write(file_data)
+        # Simulate processing and save the processed file
+        with open(processed_filepath, "w") as f:
+            f.write(file_data)
 
-    socketio.emit('file_uploaded', {'filename': filename})  # Notify client about new file
+        # Notify client about the newly processed file
+        socketio.emit('file_uploaded', {'filename': filename})
 
     return '', 204
 
